@@ -1,0 +1,74 @@
+section>div.code-exercise {
+    top: 0 !important;
+    height: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: auto 1fr 1fr !important;
+    gap: 1rem !important;
+
+    h3 {
+        grid-column: span 2;
+    }
+
+    .monaco-editor-container {
+        transform: scale(1) !important;
+
+        &:not(:has(+ iframe)) {
+            grid-column: span 2;
+        }
+    }
+
+    .monaco-editor {
+        text-align: left;
+    }
+
+    iframe {
+        height: 100%;
+        width: 100%;
+        max-width: none;
+        max-height: none;
+        background-color: #fff;
+        box-sizing: content-box;
+    }
+
+    .monaco-editor,
+    iframe {
+        border: 1px solid gray;
+    }
+
+    p {
+        display: flex;
+        align-items: start;
+        text-align: start;
+
+        ul.spoiler-list,
+        ol.spoiler-list {
+            list-style: none;
+            flex-grow: 1;
+
+            li {
+                background: #333333;
+                border-radius: 0.2em;
+                color: transparent;
+                user-select: none;
+
+                &:hover {
+                    background: transparent;
+                    color: inherit;
+                }
+
+                &:not(:last-child) {
+                    margin-bottom: 0.2rem;
+                }
+            }
+        }
+
+        &:not(:has(+ *[data-code-exercise-custom-content])) {
+            grid-column: span 2;
+        }
+    }
+
+    *:not(.monaco-editor):not(.monaco-editor *) {
+        font-size: initial;
+    }
+}

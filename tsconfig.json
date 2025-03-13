@@ -1,0 +1,28 @@
+{
+    "compilerOptions": {
+        "target": "ES5",
+        "module": "ES6",
+        "lib": [
+            "DOM",
+            "ES6"
+        ],
+        "moduleResolution": "node", // Resolve node_modules
+        "baseUrl": ".", // Base directory for module resolution
+        "paths": {
+            "*": [
+                "node_modules/*"
+            ] // Resolve modules from node_modules
+        },
+        "declaration": true,
+        "declarationDir": "./dist/types",
+        "outDir": "./dist",
+        "strict": true,
+        "noImplicitOverride": true
+    },
+    "include": [
+        "src/**/*",
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
