@@ -1,6 +1,6 @@
 import * as Reveal from "reveal.js";
 import "./style.scss"
-import { Exercise, HtmlExcercise, IValidationRule } from "code-exercises-js"
+import { EditableField, Exercise, HtmlExcercise, IValidationRule } from "code-exercises-js"
 import ValidationRuleSet from "code-exercises-js/dist/types/Validation";
 
 type unkownExerciseType = Exercise<IValidationRule, ValidationRuleSet<IValidationRule>>;
@@ -9,6 +9,59 @@ type SupportedLanguage = (typeof supportedLanguages)[number];
 
 const isSupportedLanguage = (value: string): value is SupportedLanguage =>
     supportedLanguages.includes(value as SupportedLanguage);
+
+function createSpoilerElement(innerText: string): HTMLLIElement {
+    const li = document.createElement("li");
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = "Hinweis umschalten";
+
+    const spoilerContent = document.createElement("p");
+    spoilerContent.textContent = innerText;
+
+    details.appendChild(summary);
+    details.appendChild(spoilerContent);
+    li.appendChild(details);
+
+    return li;
+}
+
+function createHelpTextElement(exercise: unkownExerciseType): HTMLDivElement {
+    const helpTextElement = document.createElement("div");
+    helpTextElement.classList.add("spoiler-element");
+
+    const h4 = document.createElement("h4");
+    h4.innerText = "Tipps zur Bearbeitung:";
+
+    const p = document.createElement("p");
+    p.innerText = "Beginnen Sie mit der Aufgabe!";
+
+    const count = document.createElement("span");
+    count.classList.add("sr-only");
+    count.setAttribute("aria-live", "polite");
+    count.innerText = "Es gibt noch keine Hinweise.";
+
+    helpTextElement.append(h4, p, count);
+
+    exercise.onValidate.on(data => {
+        count.innerText = `Es gibt ${data.errors.length} Hinweise.`;
+
+        if (data.valid) {
+            p.replaceChildren("Gut gemacht! Alles richtig!");
+        } else {
+            const ul = document.createElement("ul");
+            data.errors.forEach(e => {
+                const li = createSpoilerElement(e);
+                ul.appendChild(li);
+            });
+            p.replaceChildren(ul);
+        }
+    });
+
+    return helpTextElement;
+}
+
+const removeLeadingNewline = (str: string) => str.replace(/^\n/, "");
 
 class RevealCodeExercisePlugin implements Reveal.Plugin {
     readonly id: string = "RevealCodeExercisePlugin";
@@ -26,7 +79,7 @@ class RevealCodeExercisePlugin implements Reveal.Plugin {
         for (const slide of exerciseSlides) {
 
             const contentElement = slide.querySelector(`[${this.dataPrefix}Content]`);
-            const content = contentElement?.textContent ?? "";
+            const content = removeLeadingNewline(contentElement?.textContent ?? "");
 
             const exerciseType = slide.dataset[`${this.dataSetPrefix}Type`] ?? this.defaultExerciseType;
             if (!isSupportedLanguage(exerciseType)) {
@@ -71,28 +124,12 @@ class RevealCodeExercisePlugin implements Reveal.Plugin {
                     throw "Unreachable";
             }
 
-            const helpTextElement = document.createElement("p");
-            exercise.onValidate.on(data => {
-                if (data.valid) {
-                    helpTextElement.replaceChildren("Gut gemacht! Alles richtig!");
-                } else {
-                    helpTextElement.replaceChildren("Hier ein paar Tipps:")
-                    const ul = document.createElement("ul");
-                    ul.classList.add("spoiler-list");
-                    data.errors.forEach(e => {
-                        const li = document.createElement("li");
-                        li.textContent = e;
-                        ul.appendChild(li);
-                    });
-                    helpTextElement.appendChild(ul);
-                }
-            });
+            const helpTextElement = createHelpTextElement(exercise);
+            exerciseElement.append(helpTextElement);
 
             if (exerciseId != undefined) {
                 this._excercises.set(exerciseId, exercise);
             }
-
-            exerciseElement.append(helpTextElement);
 
             if (customContentElement != null) {
                 exerciseElement.append(customContentElement);
@@ -106,12 +143,25 @@ class RevealCodeExercisePlugin implements Reveal.Plugin {
         throw new Error("Method not implemented.");
     }
 
-    onSlideChanged(event: Event): void {
-        console.log(event);
-    }
-
+    /**
+    * Returns the Exercises with that id or undefined
+    * @param string The id of the Exercise
+    * @returns The Exercise object
+    *
+    */
     getExercise(id: string): unkownExerciseType | undefined {
         return this._excercises.get(id);
+    }
+
+    /**
+    * Uses the EditableField constructor to create a new instance of EditableField
+    * @param range Sets the range for the field [lineStart, charStart, lineEnd, charEnd]
+    * @param allowMultiline Sets the flag to allow newLine characters as input
+    * @returns EditableField
+    *
+    */
+    createEditableField(range: [number, number, number, number], allowMultiline?: boolean) {
+        return new EditableField(range, allowMultiline);
     }
 }
 
