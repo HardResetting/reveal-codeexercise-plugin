@@ -127,15 +127,19 @@ class RevealCodeExercisePlugin implements Reveal.Plugin {
                     .map(k => k.toLowerCase());
 
                 let objectTail: JsonObject = config;
-                let lastPath = path[0];
 
-                for (let i = 1; i <= path.length - 1; i++) {
-                    const newTail = objectTail[lastPath];
-                    objectTail = isJsonObject(newTail) ? newTail : {};
+                for (let i = 0; i < path.length - 1; i++) {
+                    const segment = path[i];
 
-                    lastPath = path[i];
+                    if (!isJsonObject(objectTail[segment])) {
+                        objectTail[segment] = {};
+                    }
+
+                    objectTail = objectTail[segment] as JsonObject;
                 }
 
+                // Assign final value
+                const lastPath = path[path.length - 1];
                 objectTail[lastPath] = getDatasetValue(dataset, key);
             }
 
