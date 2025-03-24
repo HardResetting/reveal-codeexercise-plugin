@@ -2,8 +2,9 @@ import * as Reveal from "reveal.js";
 import "./style.scss"
 import { EditableField, Exercise, HtmlExcercise, IValidationRule } from "code-exercises-js"
 import ValidationRuleSet from "code-exercises-js/dist/types/Validation";
+const merge = require("lodash.merge");
 
-type unkownExerciseType = Exercise<IValidationRule, ValidationRuleSet<IValidationRule>>;
+type UnkownExerciseType = Exercise<IValidationRule, ValidationRuleSet<IValidationRule>>;
 const supportedLanguages = ["html"] as const;
 type SupportedLanguage = (typeof supportedLanguages)[number];
 
@@ -26,7 +27,7 @@ function createSpoilerElement(innerText: string): HTMLLIElement {
     return li;
 }
 
-function createHelpTextElement(exercise: unkownExerciseType): HTMLDivElement {
+function createHelpTextElement(exercise: UnkownExerciseType): HTMLDivElement {
     const helpTextElement = document.createElement("div");
     helpTextElement.classList.add("spoiler-element");
 
@@ -63,36 +64,128 @@ function createHelpTextElement(exercise: unkownExerciseType): HTMLDivElement {
 
 const removeLeadingNewline = (str: string) => str.replace(/^\n/, "");
 
+
+type PluginOptions = {
+    dataPrefix: string,
+    dataSetPrefix: string,
+    exerciseType: SupportedLanguage,
+    showPreview: string,
+    monacoEditorOptions: Record<string, unknown>
+}
+const defaultOptions: PluginOptions = {
+    dataPrefix: "data-code-exercise-",
+    dataSetPrefix: "codeExercise",
+    exerciseType: "html",
+    showPreview: "true",
+    monacoEditorOptions: {}
+};
+
+type ExtendedOptions = Reveal.Options & { revealCodeExercisePlugin?: Partial<PluginOptions> };
+type JsonValue = string | number | boolean | null | JsonObject;
+interface JsonObject {
+    [key: string]: JsonValue;
+}
+function isJsonObject(value: unknown): value is JsonObject {
+    return !(typeof value !== "object" ||
+        value === null ||
+        Array.isArray(value));
+}
+
 class RevealCodeExercisePlugin implements Reveal.Plugin {
     readonly id: string = "RevealCodeExercisePlugin";
-    dataPrefix = "data-code-exercise-";
-    dataSetPrefix = "codeExercise";
-    defaultExerciseType: SupportedLanguage = "html";
-    defaultShowPreview = "true";
+    public options: PluginOptions = defaultOptions;
+    private _excercises: Map<string, UnkownExerciseType> = new Map();
 
-    private _excercises: Map<string, unkownExerciseType> = new Map();
+    init(reveal: Reveal.Api): void {
+        const getConfig = (element: HTMLElement) => {
+            const dataset = element.dataset;
+            const datasetConfigString = `${this.options.dataSetPrefix}Monaco`;
+            const regex = new RegExp(String.raw`^${datasetConfigString}`, "g");
 
-    init(reveal: Reveal.Api): void | Promise<any> {
+            let config: JsonObject = {};
+            if (dataset[datasetConfigString]) {
+                try {
+                    const parsed = JSON.parse(dataset[datasetConfigString]);
+
+                    if (typeof parsed === "object" && !Array.isArray(parsed)) {
+                        config = parsed;
+                    }
+                } catch (e) {
+                    console.warn("Could not parse MonacoEditorOptions!", e);
+                }
+            }
+
+            for (const key in dataset) {
+                if (!key.startsWith(datasetConfigString) || key === datasetConfigString) {
+                    continue;
+                }
+
+                const path = key
+                    .replace(regex, "")
+                    .replace(/^[A-Z]/, c => c.toLowerCase())
+                    .split(/(?=[A-Z])/)
+                    .map(k => k.toLowerCase());
+
+                let objectTail: JsonObject = config;
+                let lastPath = path[0];
+
+                for (let i = 1; i <= path.length - 1; i++) {
+                    const newTail = objectTail[lastPath];
+                    objectTail = isJsonObject(newTail) ? newTail : {};
+
+                    lastPath = path[i];
+                }
+
+                objectTail[lastPath] = getDatasetValue(dataset, key);
+            }
+
+            return config;
+        }
+        const getDatasetValue = (dataset: DOMStringMap, key: string): string => {
+            if (dataset[key] === undefined) {
+                console.warn(`dataset key '${key}' has no value`);
+                return "";
+            }
+
+            try {
+                const obj = JSON.parse(dataset[key]);
+                return obj;
+            }
+            catch {
+                return dataset[key];
+            }
+
+        }
+
+        const revealOptions = reveal.getConfig() as ExtendedOptions;
+
+        const pluginOptions = revealOptions["revealCodeExercisePlugin"];
+        if (pluginOptions != undefined) {
+            merge(this.options.monacoEditorOptions, pluginOptions);
+        }
+
         const slides = reveal.getSlides();
 
-        const exerciseSlides = slides.filter(slide => slide.dataset[this.dataSetPrefix] != undefined)
+        const exerciseSlides = slides.filter(slide => slide.dataset[this.options.dataSetPrefix] != undefined)
         for (const slide of exerciseSlides) {
 
-            const contentElement = slide.querySelector(`[${this.dataPrefix}Content]`);
+            const monacoEditorOptions = merge(this.options.monacoEditorOptions, getConfig(slide));
+
+            const contentElement = slide.querySelector(`[${this.options.dataPrefix}Content]`);
             const content = removeLeadingNewline(contentElement?.textContent ?? "");
 
-            const exerciseType = slide.dataset[`${this.dataSetPrefix}Type`] ?? this.defaultExerciseType;
+            const exerciseType = slide.dataset[`${this.options.dataSetPrefix}Type`] ?? this.options.exerciseType;
             if (!isSupportedLanguage(exerciseType)) {
                 throw `Unsupported exercise type: ${exerciseType}`
             }
 
-            const exerciseId = slide.dataset[`${this.dataSetPrefix}Id`];
-            const exerciseTitle = slide.dataset[`${this.dataSetPrefix}Title`];
+            const exerciseId = slide.dataset[`${this.options.dataSetPrefix}Id`];
+            const exerciseTitle = slide.dataset[`${this.options.dataSetPrefix}Title`];
 
-            const previewStr = slide.dataset[`${this.dataSetPrefix}Preview`] ?? this.defaultShowPreview;
+            const previewStr = slide.dataset[`${this.options.dataSetPrefix}Preview`] ?? this.options.showPreview;
             const preview = /^true$/i.test(previewStr);
 
-            const customContentElement = slide.querySelector(`[${this.dataPrefix}custom-content]`);
+            const customContentElement = slide.querySelector(`[${this.options.dataPrefix}custom-content]`);
 
             const exerciseElement = document.createElement("div");
             exerciseElement.classList.add("code-exercise");
@@ -108,15 +201,15 @@ class RevealCodeExercisePlugin implements Reveal.Plugin {
             editorElement.classList.add("monaco-editor-container");
             exerciseElement.append(editorElement);
 
-            let exercise: unkownExerciseType;
+            let exercise: UnkownExerciseType;
             switch (exerciseType) {
                 case "html":
                     if (preview) {
                         const iframeElement = document.createElement("iframe");
                         exerciseElement.append(iframeElement);
-                        exercise = new HtmlExcercise(editorElement, content, iframeElement);
+                        exercise = new HtmlExcercise(editorElement, content, iframeElement, monacoEditorOptions);
                     } else {
-                        exercise = new HtmlExcercise(editorElement, content);
+                        exercise = new HtmlExcercise(editorElement, content, undefined, monacoEditorOptions);
                     }
 
                     break;
@@ -149,7 +242,7 @@ class RevealCodeExercisePlugin implements Reveal.Plugin {
     * @returns The Exercise object
     *
     */
-    getExercise(id: string): unkownExerciseType | undefined {
+    getExercise(id: string): UnkownExerciseType | undefined {
         return this._excercises.get(id);
     }
 

@@ -2,17 +2,21 @@ import * as Reveal from "reveal.js";
 import "./style.scss";
 import { EditableField, Exercise, IValidationRule } from "code-exercises-js";
 import ValidationRuleSet from "code-exercises-js/dist/types/Validation";
-type unkownExerciseType = Exercise<IValidationRule, ValidationRuleSet<IValidationRule>>;
+type UnkownExerciseType = Exercise<IValidationRule, ValidationRuleSet<IValidationRule>>;
 declare const supportedLanguages: readonly ["html"];
 type SupportedLanguage = (typeof supportedLanguages)[number];
-declare class RevealCodeExercisePlugin implements Reveal.Plugin {
-    readonly id: string;
+type PluginOptions = {
     dataPrefix: string;
     dataSetPrefix: string;
-    defaultExerciseType: SupportedLanguage;
-    defaultShowPreview: string;
+    exerciseType: SupportedLanguage;
+    showPreview: string;
+    monacoEditorOptions: Record<string, unknown>;
+};
+declare class RevealCodeExercisePlugin implements Reveal.Plugin {
+    readonly id: string;
+    options: PluginOptions;
     private _excercises;
-    init(reveal: Reveal.Api): void | Promise<any>;
+    init(reveal: Reveal.Api): void;
     destroy(): void;
     /**
     * Returns the Exercises with that id or undefined
@@ -20,7 +24,7 @@ declare class RevealCodeExercisePlugin implements Reveal.Plugin {
     * @returns The Exercise object
     *
     */
-    getExercise(id: string): unkownExerciseType | undefined;
+    getExercise(id: string): UnkownExerciseType | undefined;
     /**
     * Uses the EditableField constructor to create a new instance of EditableField
     * @param range Sets the range for the field [lineStart, charStart, lineEnd, charEnd]
