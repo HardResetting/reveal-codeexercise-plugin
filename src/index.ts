@@ -229,7 +229,7 @@ class RevealCodeExercisePlugin implements Reveal.Plugin {
             }
 
             // TODO: realy annoying bug. I think it is because monaco does not know the size of its parent at this point in time.
-            setTimeout(() => (exercise as any)._monacoEditorInstance._editorInstance.layout(), 100);
+            setTimeout(() => exercise.monacoEditorInstance.layout(), 100);
         }
     }
     destroy(): void {
