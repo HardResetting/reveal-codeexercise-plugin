@@ -11,11 +11,18 @@ type SupportedLanguage = (typeof supportedLanguages)[number];
 const isSupportedLanguage = (value: string): value is SupportedLanguage =>
     supportedLanguages.includes(value as SupportedLanguage);
 
-function createSpoilerElement(innerText: string): HTMLLIElement {
+function createSpoilerElement(innerText: string, index: number): HTMLLIElement {
     const li = document.createElement("li");
     const details = document.createElement("details");
     const summary = document.createElement("summary");
-    summary.textContent = "Hinweis umschalten";
+
+    const openSummaryText = `${index}. Hinweis aufklappen`;
+    const closedSummaryText = `${index}. Hinweis zuklappen`;
+
+    summary.textContent = openSummaryText;
+    summary.addEventListener("toggle", function () {
+        summary.textContent = summary.hasAttribute("[open]") ? closedSummaryText : openSummaryText;
+    });
 
     const spoilerContent = document.createElement("p");
     spoilerContent.textContent = innerText;
@@ -51,10 +58,11 @@ function createHelpTextElement(exercise: UnkownExerciseType): HTMLDivElement {
             p.replaceChildren("Gut gemacht! Alles richtig!");
         } else {
             const ul = document.createElement("ul");
-            data.errors.forEach(e => {
-                const li = createSpoilerElement(e);
+            for (let i = 0; i < data.errors.length; i++) {
+                const e = data.errors[i];
+                const li = createSpoilerElement(e, i + 1);
                 ul.appendChild(li);
-            });
+            }
             p.replaceChildren(ul);
         }
     });
@@ -165,7 +173,7 @@ class RevealCodeExercisePlugin implements Reveal.Plugin {
 
         const pluginOptions = revealOptions["revealCodeExercisePlugin"];
         if (pluginOptions != undefined) {
-            merge(this.options.monacoEditorOptions, pluginOptions);
+            merge(this.options, pluginOptions);
         }
 
         const slides = reveal.getSlides();
