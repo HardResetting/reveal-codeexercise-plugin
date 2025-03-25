@@ -198,6 +198,7 @@ class RevealCodeExercisePlugin implements Reveal.Plugin {
             const preview = /^true$/i.test(previewStr);
 
             const customContentElement = slide.querySelector(`[${this.options.dataPrefix}custom-content]`);
+            customContentElement?.classList.add("custom-content");
 
             const exerciseElement = document.createElement("div");
             exerciseElement.classList.add("code-exercise");

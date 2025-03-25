@@ -42,6 +42,10 @@ section.code-exercise {
             border: 1px solid gray;
         }
 
+        >div.custom-content {
+            overflow: auto;
+        }
+
         >div.spoiler-element {
             &:not(:has(+ *[data-code-exercise-custom-content])) {
                 grid-column: span 2;
