@@ -3,6 +3,20 @@ section.code-exercise {
     height: 95% !important; // TODO: Find a proper solution to keep the bottom taskbar accessible
     margin-bottom: 2rem;
 
+    summary {
+        cursor: pointer;
+    }
+
+    details {
+        &>summary::after {
+            content: " öffnen"
+        }
+
+        &[open]>summary::after {
+            content: " schließen"
+        }
+    }
+
     >div.code-exercise {
         height: 100% !important;
         display: grid !important;
@@ -16,7 +30,7 @@ section.code-exercise {
         }
 
         .monaco-editor-container {
-            transform: scale(1) !important;
+            transform: scale(1.001) !important;
 
             &:not(:has(+ iframe)) {
                 grid-column: span 2;
@@ -30,7 +44,7 @@ section.code-exercise {
         >iframe {
             height: 100%;
             width: 100%;
-            transform: scale(1.0000001); // TODO: Weird bug. Probably because of the scaling, reveal.js does
+            transform: scale(1.001); // TODO: Weird bug. Probably because of the scaling, reveal.js does
             max-width: none;
             max-height: none;
             background-color: #fff;
@@ -53,7 +67,7 @@ section.code-exercise {
 
             height: 100%;
             display: grid;
-            grid-template-rows: auto 1fr;
+            grid-template-rows: auto auto 1fr;
             grid-template-columns: 1fr;
             justify-content: start;
             align-content: start;
@@ -68,11 +82,15 @@ section.code-exercise {
                 overflow-y: auto;
                 overflow-x: hidden;
 
+                >ul, 
+                >ol {
+                    list-style: none;
+                    margin-left: 0;
+                }
+
                 ul,
                 ol {
-                    list-style: none;
                     flex-grow: 1;
-                    margin-left: 0;
                     padding-left: 0;
 
                     li {

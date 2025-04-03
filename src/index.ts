@@ -2,6 +2,7 @@ import * as Reveal from "reveal.js";
 import "./style.scss"
 import { EditableField, Exercise, HtmlExcercise, IValidationRule } from "code-exercises-js"
 import ValidationRuleSet from "code-exercises-js/dist/types/Validation";
+import ValidationResultGroup from "code-exercises-js/dist/types/ValidationResultGroup";
 const merge = require("lodash.merge");
 
 type UnkownExerciseType = Exercise<IValidationRule, ValidationRuleSet<IValidationRule>>;
@@ -11,21 +12,36 @@ type SupportedLanguage = (typeof supportedLanguages)[number];
 const isSupportedLanguage = (value: string): value is SupportedLanguage =>
     supportedLanguages.includes(value as SupportedLanguage);
 
-function createSpoilerElement(innerText: string, index: number): HTMLLIElement {
+function createSpoilerElement(resultGroup: ValidationResultGroup, index: number): HTMLLIElement {
     const li = document.createElement("li");
+
     const details = document.createElement("details");
+    details.id = resultGroup.id;
+    const wasDetailsOpen = document.getElementById(resultGroup.id)?.hasAttribute("open") ?? false;
+    if (wasDetailsOpen) {
+        details.setAttribute("open", "");
+    }
+
     const summary = document.createElement("summary");
+    summary.textContent = `${index}. Hinweisgruppe`;
 
-    const openSummaryText = `${index}. Hinweis aufklappen`;
-    const closedSummaryText = `${index}. Hinweis zuklappen`;
+    const spoilerContent = document.createElement("ol");
 
-    summary.textContent = openSummaryText;
-    summary.addEventListener("toggle", function () {
-        summary.textContent = summary.hasAttribute("[open]") ? closedSummaryText : openSummaryText;
-    });
+    for (const result of resultGroup.results) {
+        const li = document.createElement("li");
+        li.textContent = result.message;
 
-    const spoilerContent = document.createElement("p");
-    spoilerContent.textContent = innerText;
+        if (result.isValid) {
+            li.style.textDecoration = "line-through"
+            li.ariaDescription = "Erfüllt";
+        }
+
+        spoilerContent.appendChild(li);
+
+        if (!result.isValid) {
+            break;
+        }
+    }
 
     details.appendChild(summary);
     details.appendChild(spoilerContent);
@@ -52,19 +68,25 @@ function createHelpTextElement(exercise: UnkownExerciseType): HTMLDivElement {
     helpTextElement.append(h4, p, count);
 
     exercise.onValidate.on(data => {
-        count.innerText = `Es gibt ${data.errors.length} Hinweise.`;
+        const resultGroups = data.resultGroups;
+        const length = data.getInvalidResults().length;
+        count.innerText = `Es gibt ${length} Hinweise.`;
 
-        if (data.valid) {
-            p.replaceChildren("Gut gemacht! Alles richtig!");
+        const innerP = document.createElement("p");
+        if (length > 0) {
+            innerP.textContent = "Es gibt noch offene Hinweise!";
         } else {
-            const ul = document.createElement("ul");
-            for (let i = 0; i < data.errors.length; i++) {
-                const e = data.errors[i];
-                const li = createSpoilerElement(e, i + 1);
-                ul.appendChild(li);
-            }
-            p.replaceChildren(ul);
+            innerP.textContent = "Gut gemacht! Alles richtig!";
         }
+
+        const ul = document.createElement("ul");
+        for (let i = 0; i < resultGroups.length; i++) {
+            const e = resultGroups[i];
+            const li = createSpoilerElement(e, i + 1);
+            ul.appendChild(li);
+        }
+        p.replaceChildren(innerP);
+        p.appendChild(ul);
     });
 
     return helpTextElement;

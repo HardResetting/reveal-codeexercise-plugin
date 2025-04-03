@@ -34,7 +34,7 @@
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
-    "code-exercises-js": "^1.0.11",
+    "code-exercises-js": "^2.0.2",
     "css-loader": "^7.1.2",
     "lodash.merge": "^4.6.2",
     "reveal.js": "^5.1.0",
