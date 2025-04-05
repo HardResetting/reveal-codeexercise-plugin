@@ -28,6 +28,9 @@ function createSpoilerElement(resultGroup: ValidationResultGroup, index: number)
     const spoilerContent = document.createElement("ol");
 
     for (const result of resultGroup.results) {
+        if (result.status == "unknown") {
+            break;
+        }
         const li = document.createElement("li");
         li.textContent = result.message;
 
@@ -38,9 +41,6 @@ function createSpoilerElement(resultGroup: ValidationResultGroup, index: number)
 
         spoilerContent.appendChild(li);
 
-        if (!result.isValid) {
-            break;
-        }
     }
 
     details.appendChild(summary);
