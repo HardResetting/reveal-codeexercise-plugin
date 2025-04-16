@@ -14,6 +14,9 @@ const isSupportedLanguage = (value: string): value is SupportedLanguage =>
 
 function createSpoilerElement(resultGroup: ValidationResultGroup, index: number): HTMLLIElement {
     const li = document.createElement("li");
+    if(resultGroup.isValid) {
+        li.style.textDecoration = "line-through";
+    }
 
     const details = document.createElement("details");
     details.id = resultGroup.id;
@@ -203,7 +206,7 @@ class RevealCodeExercisePlugin implements Reveal.Plugin {
         const exerciseSlides = slides.filter(slide => slide.dataset[this.options.dataSetPrefix] != undefined)
         for (const slide of exerciseSlides) {
 
-            const monacoEditorOptions = merge(this.options.monacoEditorOptions, getConfig(slide));
+            const monacoEditorOptions = merge({}, this.options.monacoEditorOptions, getConfig(slide));
 
             const contentElement = slide.querySelector(`[${this.options.dataPrefix}Content]`);
             const content = removeLeadingNewline(contentElement?.textContent ?? "");
